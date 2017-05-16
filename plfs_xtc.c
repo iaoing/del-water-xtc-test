@@ -24,7 +24,7 @@ const char *mdio_errmsg(int n) {
 // Sets the error code and returns an appropriate return value
 // for the calling function to return to its parent
 // return -1 means curred some wrong
-static int mdio_seterror(int code) {
+int mdio_seterror(int code) {
 	mdio_errcode = code;
 	return code ? -1 : 0;
 }
@@ -239,7 +239,7 @@ int xtc_write_frame(md_file *mf, md_ts *ts) {
 
 
 // .xtc file functions
-static int xtc_int(md_file *mf, int *i){
+int xtc_int(md_file *mf, int *i){
 	if(mf->mode == XTC_READ) 
 		return get_int(mf, i);
 	else if(mf->mode == XTC_WRITE)
@@ -248,7 +248,7 @@ static int xtc_int(md_file *mf, int *i){
 		return mdio_seterror(MDIO_MODEERROR);
 }
 
-static int xtc_float(md_file *mf, float *f){
+int xtc_float(md_file *mf, float *f){
 	if(mf->mode == XTC_READ) 
 		return get_float(mf, f);
 	else if(mf->mode == XTC_WRITE)
@@ -257,7 +257,7 @@ static int xtc_float(md_file *mf, float *f){
 		return mdio_seterror(MDIO_MODEERROR);
 }
 
-static int xtc_data(md_file *mf, char *buf, int len){
+int xtc_data(md_file *mf, char *buf, int len){
 	if(mf->mode == XTC_READ) 
 		return get_data(mf, buf, len);
 	else if(mf->mode == XTC_WRITE)
@@ -268,7 +268,7 @@ static int xtc_data(md_file *mf, char *buf, int len){
 
 // .xtc file functions for read
 // get_int() - reads an integer from an xtc file
-static int get_int(md_file *mf, int *i) {
+int get_int(md_file *mf, int *i) {
 	int mycopy;
 	unsigned char *c;
 	c = (char*)&mycopy;
@@ -302,7 +302,7 @@ static int get_int(md_file *mf, int *i) {
 
 
 // get_float() - reads a float from an xtc file
-static int get_float(md_file *mf, float *f) {
+int get_float(md_file *mf, float *f) {
 	unsigned char *c;
 	int i, mycopy;
 	c = (char*)&mycopy;
@@ -338,7 +338,7 @@ static int get_float(md_file *mf, float *f) {
 
 // get_data() - reads a specific amount of data from an xtc
 // file using the xdr format.
-static int get_data(md_file *mf, char *buf, int len) {
+int get_data(md_file *mf, char *buf, int len) {
 	if (!mf || len < 1) return mdio_seterror(MDIO_BADPARAMS);
 	size_t slen = (size_t)len;
 	if (buf) {
@@ -397,7 +397,7 @@ static int get_data(md_file *mf, char *buf, int len) {
 
 // .xtc file functions for write
 // put_int() - writes an integer to an xtc file
-static int put_int(md_file *mf, int *i) {
+int put_int(md_file *mf, int *i) {
 	if (!mf) return mdio_seterror(MDIO_BADPARAMS);
         // sanity check.
     if (sizeof(int) != 4) return mdio_seterror(MDIO_SIZEERROR);
@@ -423,7 +423,7 @@ static int put_int(md_file *mf, int *i) {
 
 
 // put_float() - writes a float to an xtc file
-static int put_float(md_file *mf, float *f) {
+int put_float(md_file *mf, float *f) {
 	if (!mf) return mdio_seterror(MDIO_BADPARAMS);
 
 	int mycopy = xdr_htonl (*(int*)f);
@@ -448,7 +448,7 @@ static int put_float(md_file *mf, float *f) {
 
 // put_data() - writes a specific amount of data to an xtc
 // file using the xdr format.
-static int put_data(md_file *mf, char *buf, int len) {
+int put_data(md_file *mf, char *buf, int len) {
 	if (!mf || !buf || len < 1) return mdio_seterror(MDIO_BADPARAMS);
 	size_t slen = (size_t)len;
 
@@ -490,7 +490,7 @@ static int put_data(md_file *mf, char *buf, int len) {
 
 // some tools for get for put data
 // xdr_ntohl -> (*char)int to real int for read
-static unsigned int xdr_ntohl(unsigned int x)
+unsigned int xdr_ntohl(unsigned int x)
 {
     short s = 0x0F00;
     if (*((char *)&s) == (char)0x0F)
@@ -506,7 +506,7 @@ static unsigned int xdr_ntohl(unsigned int x)
 }
 
 // xdr_htonl -> real int to (char*)int for write
-static unsigned int xdr_htonl(unsigned int x)
+unsigned int xdr_htonl(unsigned int x)
 {
     short s = 0x0F00;
     if (*((char *)&s) == (char)0x0F)
@@ -521,7 +521,7 @@ static unsigned int xdr_htonl(unsigned int x)
     }
 }
 
-static unsigned int xdr_swapbytes(unsigned int x)
+unsigned int xdr_swapbytes(unsigned int x)
 {
     unsigned int y;
     int i;
@@ -542,7 +542,7 @@ static unsigned int xdr_swapbytes(unsigned int x)
 // Converts box basis vectors to A, B, C, alpha, beta, and gamma.  
 // Stores values in md_box struct, which should be allocated before calling
 // this function.
-static int mdio_readbox(md_box *box, float *x, float *y, float *z) {
+int mdio_readbox(md_box *box, float *x, float *y, float *z) {
   float A, B, C;
 
   if (!box) {
@@ -581,7 +581,7 @@ static int mdio_readbox(md_box *box, float *x, float *y, float *z) {
 
 // returns the number of bits in the binary expansion of
 // the given integer.
-static int xtc_sizeofint(int size) {
+int xtc_sizeofint(int size) {
 	unsigned int num = 1;
 	unsigned int ssize = (unsigned int)size;
 	int nbits = 0;
@@ -595,7 +595,7 @@ static int xtc_sizeofint(int size) {
 
 // calculates the number of bits a set of integers, when compressed,
 // will take up.
-static int xtc_sizeofints(int nints, unsigned int *sizes) {
+int xtc_sizeofints(int nints, unsigned int *sizes) {
 	int i;
 	unsigned int num;
 	unsigned int nbytes, nbits, bytes[32], bytecnt, tmp;
@@ -625,7 +625,7 @@ static int xtc_sizeofints(int nints, unsigned int *sizes) {
 }
 
 // reads bits from a buffer.    
-static int xtc_receivebits(int *buf, int nbits) {
+int xtc_receivebits(int *buf, int nbits) {
 	int cnt, num; 
 	unsigned int lastbits, lastbyte;
 	unsigned char * cbuf;
@@ -659,7 +659,7 @@ static int xtc_receivebits(int *buf, int nbits) {
 
 // decompresses small integers from the buffer
 // sizes parameter has to be non-zero to prevent divide-by-zero
-static void xtc_receiveints(int *buf, const int nints, int nbits,
+void xtc_receiveints(int *buf, const int nints, int nbits,
 			unsigned int *sizes, int *nums) {
 	int bytes[32];
 	int i, j, nbytes, p, num;
@@ -698,7 +698,7 @@ static void xtc_receiveints(int *buf, const int nints, int nbits,
  |
  */
 
-static void xtc_sendbits(int buf[], int num_of_bits, int num)
+void xtc_sendbits(int buf[], int num_of_bits, int num)
 {
 
     unsigned int    cnt, lastbyte;
@@ -750,7 +750,7 @@ static void xtc_sendbits(int buf[], int num_of_bits, int num)
  |
  */
 
-static void xtc_sendints(int buf[], const int num_of_ints, const int num_of_bits,
+void xtc_sendints(int buf[], const int num_of_ints, const int num_of_bits,
                      unsigned int sizes[], unsigned int nums[])
 {
 
@@ -811,7 +811,7 @@ static void xtc_sendints(int buf[], const int num_of_ints, const int num_of_bits
 
 // function that actually reads and writes compressed coordinates  
 // only sport read feature
-static int xtc_3dfcoord(md_file *mf, float *fp, int *size, float *precision) {
+int xtc_3dfcoord(md_file *mf, float *fp, int *size, float *precision) {
 	static int *ip = NULL;
 	static int oldsize;
 	static int *buf;
@@ -1025,7 +1025,7 @@ static int xtc_3dfcoord(md_file *mf, float *fp, int *size, float *precision) {
  |
  */
 
-static int xtc3dfcoord(md_file *mf, float *fp, int *size, float *precision)
+int xtc3dfcoord(md_file *mf, float *fp, int *size, float *precision)
 {
     int     *ip  = NULL;
     int     *buf = NULL;

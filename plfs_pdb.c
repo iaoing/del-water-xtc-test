@@ -18,6 +18,7 @@ int pdb_dispaly_err()
 {
 	// printf("pdb_dispaly_err!\n");
 	// printf("%d\n", pdb_errbuf.ptr);
+	printf("IN PDB_DISPLAY_ERR:  ");
 
 	int ptr = pdb_errbuf.ptr;
 	--ptr;

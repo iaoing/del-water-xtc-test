@@ -158,42 +158,42 @@ int xtc_read_frame(md_file *, md_ts *);
 int xtc_write_frame(md_file *, md_ts *);
 
 // .xtc file functions 
-static int xtc_int(md_file *, int *);
-static int xtc_float(md_file *, float *);
-static int xtc_data(md_file *, char *, int );
+int xtc_int(md_file *, int *);
+int xtc_float(md_file *, float *);
+int xtc_data(md_file *, char *, int );
 
 // .xtc file functions for read
-static int get_int(md_file *, int *);
-static int get_float(md_file *, float *);
-static int get_data(md_file *, char *, int );
+int get_int(md_file *, int *);
+int get_float(md_file *, float *);
+int get_data(md_file *, char *, int );
 
 // .xtc file functions for write
-static int put_int(md_file *, int *);
-static int put_float(md_file *, float *);
-static int put_data(md_file *, char *, int );
+int put_int(md_file *, int *);
+int put_float(md_file *, float *);
+int put_data(md_file *, char *, int );
 
 // some tools for put or get int/float/data
-static unsigned int xdr_ntohl(unsigned int x);
-static unsigned int xdr_htonl(unsigned int x);
-static unsigned int xdr_swapbytes(unsigned int x);
+unsigned int xdr_ntohl(unsigned int x);
+unsigned int xdr_htonl(unsigned int x);
+unsigned int xdr_swapbytes(unsigned int x);
 
 // Miscellaneous functions
-static int mdio_readbox(md_box *, float *, float *, float *);
+int mdio_readbox(md_box *, float *, float *, float *);
 
 
 // for 3dfcoord
 // some tools
-static int xtc_sizeofint(int );
-static int xtc_sizeofints(int , unsigned int *);
+int xtc_sizeofint(int );
+int xtc_sizeofints(int , unsigned int *);
 // read tools
-static int xtc_receivebits(int *, int );
-static void xtc_receiveints(int *, const int , int , unsigned int *, int *);
+int xtc_receivebits(int *, int );
+void xtc_receiveints(int *, const int , int , unsigned int *, int *);
 // write tools
-static void xtc_sendbits(int *, int , int );
-static void xtc_sendints(int *, const int , const int , unsigned int *, unsigned int *);
+void xtc_sendbits(int *, int , int );
+void xtc_sendints(int *, const int , const int , unsigned int *, unsigned int *);
 // main function
-static int xtc_3dfcoord(md_file *, float *, int *, float *);
-static int xtc3dfcoord(md_file *, float *, int *, float *);
+int xtc_3dfcoord(md_file *, float *, int *, float *);
+int xtc3dfcoord(md_file *, float *, int *, float *);
 
 
 
