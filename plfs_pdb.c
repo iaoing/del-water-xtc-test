@@ -18,6 +18,8 @@ int pdb_dispaly_err()
 {
 	// printf("pdb_dispaly_err!\n");
 	// printf("%d\n", pdb_errbuf.ptr);
+	if(pdb_errbuf.buf[0] == NULL)
+		return PDB_SUCCESS;
 	printf("IN PDB_DISPLAY_ERR:  ");
 
 	int ptr = pdb_errbuf.ptr;
@@ -150,10 +152,10 @@ int get_pdb_natoms(const char *fn, int *natoms, int *nwaters, int **water_index,
 		index[index_ptr++] = old;
 	}
 
-	printf("%d\n", index_ptr);
-	for(int i = 0; i < index_ptr; ++i)
-		printf("%d  ", index[i]);
-	printf("\n");
+	// printf("%d\n", index_ptr);
+	// for(int i = 0; i < index_ptr; ++i)
+	// 	printf("%d  ", index[i]);
+	// printf("\n");
 
 	*water_ptr = index_ptr;
 	*water_index = (int*)malloc((index_ptr) * sizeof(int));
