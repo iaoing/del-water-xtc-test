@@ -1,2 +1,4 @@
 *.[oO]
 *.exe
+*.pdb
+*.xtc

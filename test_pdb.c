@@ -3,7 +3,7 @@
 
 
 
-const char *fileName = "../test_data/test.pdb";
+const char *fileName = "H:/Data-for-VMD/water-channel/apo63run3-ex3-2769000.pdb";
 
 int main(int argc, char const *argv[])
 {

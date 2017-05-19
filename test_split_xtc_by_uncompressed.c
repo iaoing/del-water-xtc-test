@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define xtcName "../../water-channel/step7_extend-400ns-fit-390ns-allwater.xtc"
-#define pdbName "../../water-channel/apo63run3-ex3-2769000.pdb"
+#define xtcName "H:/Data-for-VMD/water-channel/step7_extend-400ns-fit-390ns-allwater.xtc"
+#define pdbName "H:/Data-for-VMD/water-channel/apo63run3-ex3-2769000.pdb"
 
 
 void get_water_index(int **water_index, int *water_cnt)

@@ -81,6 +81,7 @@ int main()
 			printf("xtc_data error: %d\n", __LINE__);
 			break;
 		}
+		printf("BYTECNT: %d\n", bytecnt);
 
 		printf("========================== modify frame ===================\n");
 		// printf("BYTECNT: %d\n", bytecnt);

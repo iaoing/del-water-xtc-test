@@ -27,7 +27,7 @@ int main()
 	md_ts mt;
 
 	// open file
-	// mf = xtc_open("../../water-channel/step7_extend-400ns-fit-390ns-allwater.xtc", MDFMT_XTC, XTC_READ);
+	// mf = xtc_open("H:/Data-for-VMD/water-channel/step7_extend-400ns-fit-390ns-allwater.xtc", MDFMT_XTC, XTC_READ);
 	// mf_write = xtc_open("./test1.xtc", MDFMT_XTC, XTC_WRITE);
 
 	// test read header
@@ -40,7 +40,7 @@ int main()
 
 	// test read frame 
 	printf("----> test read frmae <----\n");
-	mf = xtc_open("../../water-channel/step7_extend-400ns-fit-390ns-allwater.xtc", MDFMT_XTC, XTC_READ);
+	mf = xtc_open("H:/Data-for-VMD/water-channel/step7_extend-400ns-fit-390ns-allwater.xtc", MDFMT_XTC, XTC_READ);
 	if(xtc_read_frame(mf, &mt))
 	{
 		printf("%s\n", mdio_errmsg(mdio_errno()));
