@@ -65,3 +65,9 @@
   - 测试读取 .xtc 文件，确定每一帧的 bytes count 和 bitsize ——指导的每个 int(x/y/z-coord) 或者每组三个 int(x,y,z-coord) 的填充大小。因为只是指导性的，实际上比这个指导性的意见小很多
 
 
+
+
+- #### test_get_waterNO.c
+  
+  - 读取 .xtc 文件，并在解压坐标数据的过程中，获得 water atome 所在的 byte offset 
+
