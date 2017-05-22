@@ -195,6 +195,9 @@ void xtc_sendints(int *, const int , const int , unsigned int *, unsigned int *)
 int xtc_3dfcoord(md_file *, float *, int *, float *);
 int xtc3dfcoord(md_file *, float *, int *, float *);
 
+// other functions to get more info
+int xtc_get_water_no(FILE *fp, int *water_index, int water_length, int *wn_index);
+
 
 
 

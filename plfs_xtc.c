@@ -1642,3 +1642,263 @@ int xtc3dfcoord(md_file *mf, float *fp, int *size, float *precision)
     }
     return mdio_seterror(MDIO_SUCCESS);
 }
+
+
+
+// other functions to get more info
+int xtc_get_water_no(FILE *file_ptr, int *water_index, int water_length, int *wn_index)
+{
+	fseek(file_ptr, 52, SEEK_CUR);
+	int water_sub = 0, *wn_tmp_index;
+	wn_tmp_index = (int*)malloc(water_length * sizeof(int));
+	
+
+
+	md_file *mf;
+	float *fp, *precision;
+	int *size;
+	size = (int*)malloc(sizeof(int));
+	precision = (float*)malloc(sizeof(float));
+	mf = (md_file *)malloc(sizeof(md_file));
+	mf->f = file_ptr;
+	mf->fmt = MDFMT_XTC;
+	mf->mode = XTC_READ;
+
+
+	int *ip = NULL;
+	int oldsize;
+	int *buf;
+
+	int minint[3], maxint[3], *lip;
+	int smallidx;
+	unsigned sizeint[3], sizesmall[3], bitsizeint[3], size3;
+	int flag, k;
+	int small, smaller, i, is_smaller, run;
+	float *lfp;
+	int tmp, *thiscoord,  prevcoord[3];
+
+	int bufsize, lsize;
+	unsigned int bitsize;
+	float inv_precision;
+
+    /* avoid uninitialized data compiler warnings */
+    bitsizeint[0] = 0;
+    bitsizeint[1] = 0;
+    bitsizeint[2] = 0;
+
+
+	if (xtc_int(mf, &lsize) < 0) 
+	{
+		return -1;
+	}
+
+	// if (*size != 0 && lsize != *size) return mdio_seterror(MDIO_BADFORMAT);
+	*size = lsize;
+	fp = (float*)malloc((lsize * 3) * sizeof(float));
+
+	// *size = lsize;
+	size3 = *size * 3;
+	if (*size <= 9) {
+		for (i = 0; i < *size; i++) {
+			if (xtc_float(mf, fp + (3 * i)) < 0) return -1;
+			if (xtc_float(mf, fp + (3 * i) + 1) < 0) return -1;
+			if (xtc_float(mf, fp + (3 * i) + 2) < 0) return -1;
+		}
+		return *size;
+	}
+
+
+	xtc_float(mf, precision);
+	if (ip == NULL) {
+		ip = (int *)malloc(size3 * sizeof(*ip));
+		if (ip == NULL) return mdio_seterror(MDIO_BADMALLOC);
+		bufsize = (int) (size3 * 1.2);
+		buf = (int *)malloc(bufsize * sizeof(*buf));
+		if (buf == NULL) return mdio_seterror(MDIO_BADMALLOC);
+		oldsize = *size;
+	} else if (*size > oldsize) {
+		ip = (int *)realloc(ip, size3 * sizeof(*ip));
+		if (ip == NULL) return mdio_seterror(MDIO_BADMALLOC);
+		bufsize = (int) (size3 * 1.2);
+		buf = (int *)realloc(buf, bufsize * sizeof(*buf));
+		if (buf == NULL) return mdio_seterror(MDIO_BADMALLOC);
+		oldsize = *size;
+	}
+	buf[0] = buf[1] = buf[2] = 0;
+
+	xtc_int(mf, &(minint[0]));
+	xtc_int(mf, &(minint[1]));
+	xtc_int(mf, &(minint[2]));
+
+	xtc_int(mf, &(maxint[0]));
+	xtc_int(mf, &(maxint[1]));
+	xtc_int(mf, &(maxint[2]));
+		
+	sizeint[0] = maxint[0] - minint[0]+1;
+	sizeint[1] = maxint[1] - minint[1]+1;
+	sizeint[2] = maxint[2] - minint[2]+1;
+	
+	/* check if one of the sizes is to big to be multiplied */
+	if ((sizeint[0] | sizeint[1] | sizeint[2] ) > 0xffffff) {
+		bitsizeint[0] = xtc_sizeofint(sizeint[0]);
+		bitsizeint[1] = xtc_sizeofint(sizeint[1]);
+		bitsizeint[2] = xtc_sizeofint(sizeint[2]);
+		bitsize = 0; /* flag the use of large sizes */
+	} else {
+		bitsize = xtc_sizeofints(3, sizeint);
+	}
+
+	xtc_int(mf, &smallidx);
+	smaller = xtc_magicints[FIRSTIDX > smallidx - 1 ? FIRSTIDX : smallidx - 1] / 2;
+	small = xtc_magicints[smallidx] / 2;
+	sizesmall[0] = sizesmall[1] = sizesmall[2] = xtc_magicints[smallidx];
+
+	/* check for zero values that would yield corrupted data */
+	if ( !sizesmall[0] || !sizesmall[1] || !sizesmall[2] ) {
+		printf("XTC corrupted, sizesmall==0 (case 1)\n");
+		return -1;
+	}
+
+
+	/* buf[0] holds the length in bytes */
+	if (xtc_int(mf, &(buf[0])) < 0) 
+	{
+		return -1;
+	}
+
+	if (xtc_data(mf, (char *) &buf[3], (int) buf[0]) < 0) 
+	{
+		return -1;
+	}
+
+	buf[0] = buf[1] = buf[2] = 0;
+
+	lfp = fp;
+	inv_precision = 1.0f / (*precision);
+	run = 0;
+	i = 0;
+	lip = ip;
+	water_sub = 0;
+	while (i < lsize) {
+		// bing...
+		// if(water_sub < water_length && water_index[water_sub] == (i+1))
+		// {
+		// 	wn_tmp_index[water_sub] = buf[0];
+		// 	++water_sub;
+		// }
+
+
+		thiscoord = (int *)(lip) + i * 3;
+
+		if (bitsize == 0) {
+			thiscoord[0] = xtc_receivebits(buf, bitsizeint[0]);
+			thiscoord[1] = xtc_receivebits(buf, bitsizeint[1]);
+			thiscoord[2] = xtc_receivebits(buf, bitsizeint[2]);
+		} else {
+			xtc_receiveints(buf, 3, bitsize, sizeint, thiscoord);
+		}
+
+		i++;
+		// bing...
+		if(water_sub < water_length && water_index[water_sub] == (i+1))
+		{
+			wn_tmp_index[water_sub] = buf[0];
+			++water_sub;
+		}
+
+		thiscoord[0] += minint[0];
+		thiscoord[1] += minint[1];
+		thiscoord[2] += minint[2];
+
+		prevcoord[0] = thiscoord[0];
+		prevcoord[1] = thiscoord[1];
+		prevcoord[2] = thiscoord[2];
+ 
+
+		flag = xtc_receivebits(buf, 1);
+		is_smaller = 0;
+		if (flag == 1) {
+			run = xtc_receivebits(buf, 5);
+			is_smaller = run % 3;
+			run -= is_smaller;
+			is_smaller--;
+		}
+		if (run > 0) {
+			thiscoord += 3;
+			for (k = 0; k < run; k+=3) {
+				xtc_receiveints(buf, 3, smallidx, sizesmall, thiscoord);
+				i++;
+				// bing..
+				if(water_sub < water_length && water_index[water_sub] == (i+1))
+				{
+					wn_tmp_index[water_sub] = buf[0];
+					++water_sub;
+				}
+				thiscoord[0] += prevcoord[0] - small;
+				thiscoord[1] += prevcoord[1] - small;
+				thiscoord[2] += prevcoord[2] - small;
+				if (k == 0) {
+					/* interchange first with second atom for better
+					 * compression of water molecules
+					 */
+					tmp = thiscoord[0]; thiscoord[0] = prevcoord[0];
+					prevcoord[0] = tmp;
+					tmp = thiscoord[1]; thiscoord[1] = prevcoord[1];
+					prevcoord[1] = tmp;
+					tmp = thiscoord[2]; thiscoord[2] = prevcoord[2];
+					prevcoord[2] = tmp;
+					*lfp++ = prevcoord[0] * inv_precision;
+					*lfp++ = prevcoord[1] * inv_precision;
+					*lfp++ = prevcoord[2] * inv_precision;
+
+					if ( !sizesmall[0] || !sizesmall[1] || !sizesmall[2] ) {
+						printf("XTC corrupted, sizesmall==0 (case 2)\n");
+						return -1;
+					}
+
+				} else {
+					prevcoord[0] = thiscoord[0];
+					prevcoord[1] = thiscoord[1];
+					prevcoord[2] = thiscoord[2];
+				}
+				*lfp++ = thiscoord[0] * inv_precision;
+				*lfp++ = thiscoord[1] * inv_precision;
+				*lfp++ = thiscoord[2] * inv_precision;
+			}
+		} else {
+			*lfp++ = thiscoord[0] * inv_precision;
+			*lfp++ = thiscoord[1] * inv_precision;
+			*lfp++ = thiscoord[2] * inv_precision;		
+		}
+		smallidx += is_smaller;
+		if (is_smaller < 0) {
+			small = smaller;
+			if (smallidx > FIRSTIDX) {
+				smaller = xtc_magicints[smallidx - 1] /2;
+			} else {
+				smaller = 0;
+			}
+		} else if (is_smaller > 0) {
+			smaller = small;
+			small = xtc_magicints[smallidx] / 2;
+		}
+		sizesmall[0] = sizesmall[1] = sizesmall[2] = xtc_magicints[smallidx] ;
+	}
+
+	// printf("water_sub: %d\n", water_sub);
+	// *wn_index = (int*)malloc((water_length) * sizeof(int));
+	memcpy((char*)wn_index, (char*)wn_tmp_index, water_length*sizeof(int));
+	// printf("%d  %d\n", wn_index[0], wn_index[1]);
+	
+	free(wn_tmp_index);
+	free(size);
+	free(mf);
+	free(precision);
+	free(fp);
+	free(ip);
+	free(buf);
+
+	return 1;
+
+
+}
