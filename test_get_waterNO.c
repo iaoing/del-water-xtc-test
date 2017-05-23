@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define xtcName "H:/Data-for-VMD/water-channel/step7_extend-400ns-fit-390ns-allwater.xtc"
 #define pdbName "H:/Data-for-VMD/water-channel/apo63run3-ex3-2769000.pdb"
@@ -70,15 +71,22 @@ int main(void)
 	int break_no = 0;
 	FILE *fp;
 	fp = fopen(xtcName, "rb");
-	for(int i = 0; i , byte_length; ++i)
+	for(int i = 0; i < byte_length; ++i)
 	{
-		if(break_no > 10)  break;
-		++break_no;
+		// if(break_no > 10)  break;
+		// ++break_no;
 		// int *wn_index;
 		// wn_index = (int*)malloc((water_length) * sizeof(int));
 		if(xtc_get_water_no(fp, water_index, water_length, &all_wn_index[i][0]) != 1)
 		{
 			printf("nnnnnnn\n");
+			// printf("%d\n", i);
+			break;
+		}
+		if(feof(fp))
+		{
+			printf("EOF: %d\n", i);
+			break;
 		}
 		// memcpy((char*)&all_wn_index[i][0], (char*)wn_index, water_length * sizeof(int));
 		// free(wn_index);
@@ -89,18 +97,80 @@ int main(void)
 		printf("water_index: %d\n", water_index[i]);
 	}
 
-	for(int i = 0; i < 10; ++i)
-	{
-		printf("byte_index: %d\n", byte_index[i]);
-		printf("all_wn_index: ");
-		for(int j = 0; j < water_length; ++j)
-		{
-			printf("%10d", all_wn_index[i][j]);
-		}
-		printf("\n");
-	}
+	// for(int i = 0; i < 10; ++i)
+	// {
+	// 	printf("byte_index: %d\n", byte_index[i]);
+	// 	printf("all_wn_index: ");
+	// 	for(int j = 0; j < water_length; ++j)
+	// 	{
+	// 		printf("%10d", all_wn_index[i][j]);
+	// 	}
+	// 	printf("\n");
+	// }
 
 	fclose(fp);
+
+	// natoms wnatome
+	// water index
+	// bytes real calu
+	FILE *wfp;
+	wfp = fopen("./origin-info/waterNo.txt", "w");
+
+	char buf[100];
+	sprintf(buf, "#natoms: %10d\n", natoms);
+	if(fwrite(buf, strlen(buf), 1, wfp) != 1)
+	{
+		printf("zzzzzzz111\n");
+		return 0;
+	}
+
+	memset(buf, 0, 100);
+	sprintf(buf, "#water index: %10d%10d\n", water_index[0], water_index[1]);
+	if(fwrite(buf, strlen(buf), 1, wfp) != 1)
+	{
+		printf("zzzzzzz222\n");
+		return 0;
+	}
+
+	memset(buf, 0, 100);
+	sprintf(buf, "#     bytes realBegin   realEnd caluBegin   caluEnd\n");
+	if(fwrite(buf, strlen(buf), 1, wfp) != 1)
+	{
+		printf("zzzzzzz222\n");
+		return 0;
+	}
+
+	int bytes, realB, realE, caluB, caluE;
+	for(int i = 0; i < byte_length; ++i)
+	{
+		memset(buf, 0, 100);
+		realB = 0;
+		realE = 0;
+		bytes = 0;
+		caluB = 0;
+		caluE = 0;
+		// printf("byte_index: %d\n", byte_index[i]);
+		// printf("all_wn_index: ");
+		bytes = byte_index[i];
+		realB = all_wn_index[i][0];
+		realE = all_wn_index[i][1];
+		caluB = (bytes*1.0/natoms)*water_index[0] + 1;
+		caluE = (bytes*1.0/natoms)*water_index[1] - 1;
+		sprintf(buf, " %10d%10d%10d%10d%10d\n", bytes, realB, realE, caluB, caluE);
+		// for(int j = 0; j < water_index; ++j)
+		// {
+		// 	printf("%10d", all_wn_index[i][j]);
+		// }
+		if(fwrite(buf, strlen(buf), 1, wfp) != 1)
+		{
+			printf("zzzzzzz333\n");
+			return 0;
+		}
+	}
+
+	fclose(wfp);
+
+
 
 	return 0;
 }
