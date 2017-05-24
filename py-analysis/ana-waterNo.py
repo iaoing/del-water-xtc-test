@@ -86,25 +86,32 @@ def write_file(filename, title, *alist):
 
 
 if __name__ == '__main__':
+	
+	# get data
 	bytecnt, realBegin, realEnd, caluBegin, caluEnd = get_coord()
+	
+
+	#############################################
+	# init det
+	"""
+	###### these det maybe error, because we should sub first frame but not pre frame for per frame!
 	detBytecnt, detRealBegin, detRealEnd, detCaluBegin, detCaluEnd = [], [], [], [], []
-	# print(len(bytecnt), len(realBegin), len(realEnd), len(caluBegin), len(caluEnd))
 	for i in range(len(bytecnt) - 1):
 		detBytecnt.append(bytecnt[i+1] - bytecnt[i])
 		detRealBegin.append(realBegin[i+1] - realBegin[i])
 		detRealEnd.append(realEnd[i+1] - realEnd[i])
 		detCaluBegin.append(caluBegin[i+1] - caluBegin[i])
 		detCaluEnd.append(caluEnd[i+1] - caluEnd[i])
-	# print(len(detBytecnt), len(detRealBegin), len(detRealEnd), len(detCaluBegin), len(detCaluEnd))
 
 	# write_file("./detInfo.txt", \
 		# "#detBytecnt, detRealBegin, detRealEnd, detCaluBegin, detCaluEnd\n", \
 		# detBytecnt, detRealBegin, detRealEnd, detCaluBegin, detCaluEnd)
 
-	# detBCRB, detBCRE = [], []
-	# for i in range(10):
-	# 	detBCRB.append(detBytecnt[i+1] - detRealBegin[i])
-	# 	detBCRE.append(detBytecnt[i+1] - detRealEnd[i])
+	"""
+	# init det
+	#############################################
+	
+
 
 	#############################################
 	# avg of det
@@ -168,9 +175,12 @@ if __name__ == '__main__':
 	# avg of det
 	#############################################
 	
+
+
 	#############################################
 	# one byte per hundred atome(exclude water) calu the water index
-
+	"""
+	############################# maybe error ! 
 	# some test for get std
 	# print(max(realBegin), min(realBegin))	# wBeginAdd std
 	# realWaterByte = []
@@ -224,7 +234,132 @@ if __name__ == '__main__':
 	print(max(detTmp1), (min(detTmp1)))
 	print(max(detTmp2), (min(detTmp2)))
 
+
+	"""
 	# one byte per hundred atome(exclude water) calu the water index
 	#############################################
 	
 
+
+
+	#############################################
+	# caluDetType1
+	"""
+
+	# all basexxxx are come from first frame
+	baseBytecnt 	= bytecnt[0]
+	baseRealBegin 	= realBegin[0]
+	baseRealEnd 	= realEnd[0]
+	# all these det are come from taht sub first frame for per frame
+	detBytecnt, detRealBegin, detRealEnd = [], [], []
+	for i in range(len(bytecnt)):
+		detBytecnt.append(bytecnt[i]	 - baseBytecnt)
+		detRealBegin.append(realBegin[i] - baseRealBegin)
+		detRealEnd.append(realEnd[i] 	 - baseRealEnd)
+
+	caluDetBegin, caluDetEnd = [], []
+	for i in range(len(bytecnt)):
+		if detBytecnt[i] == 0:
+			caluDetBegin.append(baseRealBegin + 1)
+			caluDetEnd.append(baseRealEnd - 1)
+		elif detBytecnt[i] < 0:
+			caluDetBegin.append(baseRealBegin)
+			caluDetEnd.append(baseRealEnd - detBytecnt[i])
+		else:
+			caluDetBegin.append(baseRealBegin + detBytecnt[i])
+			caluDetEnd.append(baseRealEnd)
+
+	# title = "# bytecnt, realBegin, caluDetBegin, realEnd, caluDetEnd\n"
+	# write_file("./caluDetType1.txt", title, bytecnt, realBegin, caluDetBegin, realEnd, caluDetEnd)
+
+	# test
+	# detTmp1, detTmp2 = [], []
+	# for i in range(1, len(realBegin)):
+	# 	detTmp1.append(caluDetBegin[i] - realBegin[i])
+	# 	detTmp2.append(realEnd[i] - caluDetEnd[i])
+	# print(max(detTmp1), (min(detTmp1)))
+	# print(max(detTmp2), (min(detTmp2)))
+	# detTmp1.append(0)
+	# detTmp1.sort()
+	# neg = detTmp1.index(0)
+	# zer = detTmp1.count(0) - 1
+	# pos = len(detTmp1) - neg - zer
+	# print(neg, zer, pos)
+	# detTmp2.append(0)
+	# detTmp2.sort()
+	# neg = detTmp2.index(0)
+	# zer = detTmp2.count(0) - 1
+	# pos = len(detTmp2) - neg - zer
+	# print(neg, zer, pos)
+
+	"""
+	# caluDetType1
+	#############################################
+
+
+
+	#############################################
+	# caluDetType2
+
+	std		= 0.004
+	stdW	= 0.004
+	nAtoms	= 45608
+	wBegin 	= 19297
+	wEnd 	= 45561
+
+	wBeginAdd	= wBegin * std				# frame begin ---- water begin  *  0.004
+	wWaterAdd	= (wEnd - wBegin) * stdW	# water begin ---- water end    *  0.004
+
+	wBeginAdd = math.ceil(wBeginAdd)
+	wWaterAdd = math.ceil(wWaterAdd)
+	print(wBeginAdd, wWaterAdd)
+
+	# all basexxxx are come from first frame
+	baseBytecnt 	= bytecnt[0]
+	baseRealBegin 	= realBegin[0]
+	baseRealEnd 	= realEnd[0]
+	# all these det are come from taht sub first frame for per frame
+	detBytecnt, detRealBegin, detRealEnd = [], [], []
+	for i in range(len(bytecnt)):
+		detBytecnt.append(bytecnt[i]	 - baseBytecnt)
+		detRealBegin.append(realBegin[i] - baseRealBegin)
+		detRealEnd.append(realEnd[i] 	 - baseRealEnd)
+
+	caluDetBegin, caluDetEnd = [], []
+	for i in range(len(bytecnt)):
+		if detBytecnt[i] == 0:
+			caluDetBegin.append(baseRealBegin + wBeginAdd)
+			caluDetEnd.append(baseRealEnd - wBeginAdd - wWaterAdd)
+		elif detBytecnt[i] < 0:
+			caluDetBegin.append(baseRealBegin - detBytecnt[i] + wBeginAdd)
+			caluDetEnd.append(baseRealEnd - detBytecnt[i] - wBeginAdd - wWaterAdd)
+		else:
+			caluDetBegin.append(baseRealBegin + detBytecnt[i] + wBeginAdd)
+			caluDetEnd.append(baseRealEnd + detBytecnt[i] - wBeginAdd - wWaterAdd)
+
+	title = "# bytecnt, realBegin, caluDetBegin, realEnd, caluDetEnd\n"
+	write_file("./caluDetType2.txt", title, bytecnt, realBegin, caluDetBegin, realEnd, caluDetEnd)
+
+	# test
+	detTmp1, detTmp2 = [], []
+	for i in range(1, len(realBegin)):
+		detTmp1.append(caluDetBegin[i] - realBegin[i])
+		detTmp2.append(realEnd[i] - caluDetEnd[i])
+	print(max(detTmp1), (min(detTmp1)))
+	print(max(detTmp2), (min(detTmp2)))
+	detTmp1.append(0)
+	detTmp1.sort()
+	neg = detTmp1.index(0)
+	zer = detTmp1.count(0) - 1
+	pos = len(detTmp1) - neg - zer
+	print(neg, zer, pos)
+	detTmp2.append(0)
+	detTmp2.sort()
+	neg = detTmp2.index(0)
+	zer = detTmp2.count(0) - 1
+	pos = len(detTmp2) - neg - zer
+	print(neg, zer, pos)
+
+	
+	# caluDetType2
+	#############################################
