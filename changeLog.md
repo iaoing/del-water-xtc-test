@@ -2,6 +2,15 @@
 
 ---
 
+#### 2017-05-25
+
+- 修改了 py-analysis/ana-waterNo.py 中的 caluDetType2 的一点内容
+- 添加了文件 test_split_caluDetType2.c,
+  - 测试了c语言版本的 split
+  - 使用 vmd 可以正确载入
+
+---
+
 #### 2017-05-24
 
 - 修改了 py-analysis/ana-waterNo.py 文件，添加了两个处理过程，分别为 caluDetType1 和 caluDetType2

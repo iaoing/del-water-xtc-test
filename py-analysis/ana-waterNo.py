@@ -331,8 +331,8 @@ if __name__ == '__main__':
 			caluDetBegin.append(baseRealBegin + wBeginAdd)
 			caluDetEnd.append(baseRealEnd - wBeginAdd - wWaterAdd)
 		elif detBytecnt[i] < 0:
-			caluDetBegin.append(baseRealBegin - detBytecnt[i] + wBeginAdd)
-			caluDetEnd.append(baseRealEnd - detBytecnt[i] - wBeginAdd - wWaterAdd)
+			caluDetBegin.append(baseRealBegin + detBytecnt[i] + wBeginAdd)
+			caluDetEnd.append(baseRealEnd + detBytecnt[i] - wBeginAdd - wWaterAdd)
 		else:
 			caluDetBegin.append(baseRealBegin + detBytecnt[i] + wBeginAdd)
 			caluDetEnd.append(baseRealEnd + detBytecnt[i] - wBeginAdd - wWaterAdd)
@@ -363,3 +363,7 @@ if __name__ == '__main__':
 	
 	# caluDetType2
 	#############################################
+
+
+
+	
