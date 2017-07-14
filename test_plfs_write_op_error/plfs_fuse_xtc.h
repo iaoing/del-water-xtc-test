@@ -3,8 +3,6 @@
 #include <map>
 #include <vector>
 #include <list>
-#include <unistd.h>
-
 using namespace std;
 
 
@@ -53,7 +51,6 @@ struct xtc_info
 
 struct xtc_buffer
 {
-    int rw_flag;
     int trunc_flag;         // flag that indicate should trunc xtc file or not;
                             // 0 means not get pdb info before;
                             // -1 means natoms of pdb info is not equal to natoms of xtc file;
@@ -93,19 +90,13 @@ static int xtc_magicints[] = {
 #define PDB_ATOM    1       // means this line is an atom
 #define PDB_WATER   2       // means this line is a water atom
 
-#define PLFS_SUCCESS 0
-
-#define TAG_SIZE        (7*sizeof(int))
-#define PLFS_TBD        -99
-
 
 class Pxtc 
 {
     public:
         static Pxtc *self;
-        init_self(Pxtc *t){
+        static init_self(Pxtc *t){
             self = t;
-            pthread_rwlock_init( &(write_lock), NULL );
         }
         //////////////////////////////////////////////////
         /// reorganize xtc plfs
@@ -129,10 +120,6 @@ class Pxtc
         map< string, xtc_info >         xtc_files;     // xtc-expended-path -->> xtc-info  
         map< string, pdb_info >         pdb_files;     // pdb-expended-path -->> pdb-info
         map< string, xtc_buffer >       hold_buffer;   // xtc-expended-path -->> hold_buffer(write until hold a whole frame)
-        map< string, xtc_buffer >       read_buffer;
-
-
-        pthread_rwlock_t            write_lock;
 
         ////////////////////////////////////////////////////
         /// some xtc tools
@@ -168,40 +155,10 @@ class Pxtc
         static int anaPdbBuf(char *buf, int buf_size, int *natoms, vector<int> *pp);
         static vector<string> findPdbPath(string expanded);
 
-
-
-        ////////////////////////////////
-        /// read xtc
-        static int read_xtc(const string expanded, char *buf, size_t size, off_t offset);
-        static int read_add_xi(const string expanded);
-        
-        static int read_xtc_first_frame(const string expanded, xtc_buffer *xbuf);
-        static int read_xtc_frame(const string expanded, xtc_buffer *xbuf);
-
-
-        static int read_xtc_check(off_t offset, size_t size, const xtc_buffer *xbuf);
-
-        static int read_xtc_cp_buf(char *buf, xtc_buffer *xbuf, size_t size, off_t offset);
-        static int read_xtc_resize_buf(xtc_buffer *xbuf);
-
-
-
-        // for close a file;
-        static int xtc_close(const string strPath, int open_flag);
-        static int xtc_write_close(string strPath);
-        static int xtc_read_close(string strPath);
-
-
-
-
-
     public:
-        // for test;
+        // for test
+        #define PLFS_TBD        -99
         static int write_file(const char *path, const char *buf, size_t size, off_t offset);
-
-        // for debug;
-        static int p_write(int fd, const char *buf, size_t size, off_t offset);
-        static int bing_hold_buf(string expanded, const char *buf, size_t size, off_t offset);
 
 };
 

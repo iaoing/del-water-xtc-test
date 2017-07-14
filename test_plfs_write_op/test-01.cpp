@@ -14,7 +14,79 @@ using namespace std;
 
 Pxtc *Pxtc::self;
 
+
+int cp_file();
+
+
 int main()
+{
+	// FILE *fp;
+	// fp = fopen(xtcName, "rb");
+
+	// size_t f_length;
+	// fseek(fp, 0, SEEK_END);
+	// f_length = ftell(fp);
+	// rewind(fp);
+
+	// size_t cur_size = 0, read_size;
+	// off_t cur_off;
+	// char *buf;
+
+	// int ret;
+
+	// Pxtc px;
+	// px.init_self(&px);
+
+	// while(cur_size < f_length)
+	// {
+	// 	if(cur_size + RSIZE <= f_length)
+	// 		read_size = RSIZE;
+	// 	else
+	// 		read_size = f_length - cur_size;
+
+	// 	buf = (char*)malloc(read_size * sizeof(char));
+
+	// 	if(fread(buf, read_size, 1, fp) == 1)
+	// 	{
+	// 		ret = px.write_file(writeName, buf, read_size, cur_off);
+	// 		if(ret == 0){
+	// 			cout << "0: hold" << endl;;
+	// 		}else if(ret == -3){
+	// 			cout << "-3: fluse buffer, then f_write" << endl;
+	// 		}else if(ret == -2){
+	// 			cout << "-2: flush buffer, return ditectly" << endl;
+	// 		}else if(ret == -1){
+	// 			cout << "-1: goto f_write" << endl;
+	// 		}else if(ret == 1){
+	// 			cout << " 1: flush frame" << endl;
+	// 		}else if(ret == 2){
+	// 			cout << " 2: flush trunc frame" << endl;
+	// 		}else{
+	// 			cout << "WTF!!" << endl;
+	// 			break;
+	// 		}
+	// 		cur_size += read_size;
+	// 		cur_off += read_size;
+	// 		free(buf);
+	// 	}else{
+	// 		cout << "fread error!" << endl;
+	// 		break;
+	// 	}
+
+	// }
+
+	// fclose(fp);
+	// free(buf);
+
+
+	cp_file();
+	// read_file();
+
+	return 0;
+}
+
+
+int cp_file()
 {
 	FILE *fp;
 	fp = fopen(xtcName, "rb");
@@ -25,7 +97,7 @@ int main()
 	rewind(fp);
 
 	size_t cur_size = 0, read_size;
-	off_t cur_off;
+	off_t cur_off = 0;
 	char *buf;
 
 	int ret;
@@ -40,13 +112,14 @@ int main()
 		else
 			read_size = f_length - cur_size;
 
+		cout << "MMMM " << read_size << endl;
 		buf = (char*)malloc(read_size * sizeof(char));
 
 		if(fread(buf, read_size, 1, fp) == 1)
 		{
 			ret = px.write_file(writeName, buf, read_size, cur_off);
 			if(ret == 0){
-				cout << "0: hold" << endl;;
+				cout << " 0: hold" << endl;;
 			}else if(ret == -3){
 				cout << "-3: fluse buffer, then f_write" << endl;
 			}else if(ret == -2){
@@ -57,6 +130,9 @@ int main()
 				cout << " 1: flush frame" << endl;
 			}else if(ret == 2){
 				cout << " 2: flush trunc frame" << endl;
+			}else if(ret < -90){
+				cout << "op error: " << ret - PLFS_TBD << endl;
+				break;
 			}else{
 				cout << "WTF!!" << endl;
 				break;
@@ -66,15 +142,12 @@ int main()
 			free(buf);
 		}else{
 			cout << "fread error!" << endl;
+			free(buf);
 			break;
 		}
 
 	}
 
 	fclose(fp);
-	free(buf);
-
-	return 0;
 }
-
 

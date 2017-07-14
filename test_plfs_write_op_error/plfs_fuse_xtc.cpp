@@ -312,7 +312,7 @@ pdb_info Pxtc::getPdbInfo(string expanded)
         // read file;
         ret = fread(pdbbuf, stbuf.st_size, 1, fp);
         if(ret != 1){
-            // cout << __LINE__ << endl;
+            cout << __LINE__ << endl;
             exit(1);
         }
 
@@ -406,7 +406,6 @@ int Pxtc::get_atom_type(char *str, int *serialNO)
 
 int Pxtc::hold_buf(string expanded, const char *buf, size_t size, off_t offset)
 {
-    bing_hold_buf(expanded, buf, size, offset);
     map< string, xtc_buffer >::iterator hb_iter;
     hb_iter = self->hold_buffer.find(expanded);
     if(hb_iter == self->hold_buffer.end())
@@ -420,7 +419,7 @@ int Pxtc::hold_buf(string expanded, const char *buf, size_t size, off_t offset)
         xbuf.pi_ptr     = NULL;
         xbuf.xi_ptr     = NULL;
 
-        xbuf.buffer.resize(size + 10);
+        xbuf.buffer.resize(size);
         memcpy((char*)&(xbuf.buffer[0]), buf, size);
         // xbuf.buffer     = string(buf);
 
@@ -437,7 +436,7 @@ int Pxtc::hold_buf(string expanded, const char *buf, size_t size, off_t offset)
         }
         // !!NOTE!! should check buffer_offset + buffer_size == offset!
         // !!NOTE!! but it seems many conditions should be considered!
-        hb_iter->second.buffer.resize(hb_iter->second.size + size + 10);
+        hb_iter->second.buffer.resize(hb_iter->second.size + size);
         memcpy((char*)&(hb_iter->second.buffer[hb_iter->second.size]), buf, size);
         hb_iter->second.size      += size;
         // hb_iter->second.buffer    += string(buf);
@@ -458,10 +457,9 @@ int Pxtc::hold_buf(string expanded, const char *buf, size_t size, off_t offset)
             int bcnt;
             get_bcnt_from_buf(&(hb_iter->second.buffer[0]), &bcnt);
             assert(bcnt);
-            // cout << "<<<<<<<<<< " << bcnt << endl;
             if(bcnt % 4)
             {
-                bcnt += (4 - (bcnt % 4));
+                bcnt += (4 - bcnt % 4);
             }
             hb_iter->second.cf_bytes = bcnt;
         } // != 0 means get bytecnt already;
@@ -1134,74 +1132,63 @@ void Pxtc::xtc_receiveints(int *buf, const int nints, int nbits,
 }
 
 
-// flush all the buffer held;
-int Pxtc::xtc_flush_buffer(string expanded, size_t realsize)
+int Pxtc::xtc_flush_buffer(string expended, size_t realsize)
 {
+    cout << __LINE__ << ": xtc_flush_buffer  " << expended  << endl;
     int ret, bytes_written;
     map< string, xtc_buffer >::iterator hb_iter;
     int err;
 
-    hb_iter = self->hold_buffer.find(expanded);
+    hb_iter = self->hold_buffer.find(expended);
     if(hb_iter == self->hold_buffer.end())
     {
         err = PLFS_TBD;
-        return err;
+        return -99;
     }
+    FILE *fp = fopen(expended.c_str(), "wb");
+    fseek(fp, 0, SEEK_END);
+    err = fwrite(hb_iter->second.buffer.c_str(), hb_iter->second.size, 1, fp );
+    fclose(fp);
 
-    // pthread_rwlock_rdlock( &self->write_lock );
-    // err = plfs_write( fd, hb_iter->second.buffer.c_str(), hb_iter->second.size, hb_iter->second.offset, fuse_get_context()->pid, &bytes_written );
-    // pthread_rwlock_unlock( &self->write_lock );
-
-    pthread_rwlock_wrlock( &self->write_lock );
-    int fd = open(expanded.c_str(), O_RDWR);
-    // fseek(fp, 0, SEEK_END);
-    // err = fwrite(hb_iter->second.buffer.c_str(), hb_iter->second.size, 1, fp );
-    err = p_write(fd, hb_iter->second.buffer.c_str(), hb_iter->second.size, hb_iter->second.offset);
-    close(fd);
-    pthread_rwlock_unlock( &self->write_lock );
-
-    if(err == hb_iter->second.size)
+    if(err == 1)
     {
-        // cout << __LINE__ << ": " << hb_iter->second.size << endl;
         string tmp;
         hb_iter->second.buffer.swap(tmp);
         hb_iter->second.size = 0;
         hb_iter->second.offset += hb_iter->second.size;
-        
     }
 
-    ret = (err == PLFS_SUCCESS) ? realsize : PLFS_TBD;
+    ret = (err == 1) ? realsize : -99;
     return ret;
 }
 
 
-// flush the tag info;
-// flush the first frame;
-int Pxtc::xtc_flush_frame(string expanded, size_t realsize)
+int Pxtc::xtc_flush_frame(string expended, size_t realsize)
 {
+    cout << __LINE__ << ": xtc_flush_frame  " << expended << endl;
     int ret, bytes_written;
     map< string, xtc_buffer >::iterator hb_iter;
     int err;
 
-    hb_iter = self->hold_buffer.find(expanded);
+    hb_iter = self->hold_buffer.find(expended);
     if(hb_iter == self->hold_buffer.end())
     {
         // WTF!!!
-        err = PLFS_TBD;
-        return err;
+        err = -99;
+        return -99;
     }
 
     if(hb_iter->second.size < hb_iter->second.cf_bytes + HEADER_SIZE)
     {
         // WTF!!!
-        err = PLFS_TBD;
-        return err;
+        err = -99;
+        return -99;
     }
 
-    // firstly, write reorganize tag and some xtc_info, for read easily;
+
     vector<int> tag_buf;
     map< string, xtc_info >::iterator xfs_iter;
-    xfs_iter = self->xtc_files.find(expanded);
+    xfs_iter = self->xtc_files.find(expended);
     if(xfs_iter == self->xtc_files.end())
     {
         // Well, collapse;
@@ -1222,142 +1209,102 @@ int Pxtc::xtc_flush_frame(string expanded, size_t realsize)
         tag_buf.push_back(xfs_iter->second.best_water_begin);
         tag_buf.push_back(xfs_iter->second.best_water_end);
     }
-    // pthread_rwlock_rdlock( &self->write_lock );
-    // err = plfs_write( fd, (char*)(&(tag_buf[0])), TAG_SIZE, 0, fuse_get_context()->pid, &bytes_written );
-    // pthread_rwlock_unlock( &self->write_lock );
-
-    pthread_rwlock_wrlock( &self->write_lock );
-    int fd = open(expanded.c_str(), O_CREAT | O_RDWR, S_IRWXG | S_IRWXO | S_IRWXU);
-    // fseek(fp, 0, SEEK_END);
-    // err = fwrite((char*)(&(tag_buf[0])), TAG_SIZE, 1, fp );
-    err = p_write(fd, (char*)(&(tag_buf[0])), TAG_SIZE, 0);
-    close(fd);
-    pthread_rwlock_unlock( &self->write_lock );
-
-    if(err == TAG_SIZE)
+    FILE *fp = fopen(expended.c_str(), "wb");
+    fseek(fp, 0, SEEK_END);
+    err = fwrite( (char*)(&tag_buf[0]), tag_buf.size() * sizeof(int), 1, fp );
+    fclose(fp);
+    if(err != 1)
     {
-        // Well, I don't know what to do now.
-        cout << __LINE__ << ": " << TAG_SIZE << " write tag!" << endl;
-        hb_iter->second.offset = TAG_SIZE;  // skip the tag info;
+        cout << __FUNCTION__ << ", " << __LINE__ << endl;
+        exit(1);
     }
+
+
 
 
     size_t size;
     off_t  offset;
     char* buf;
     size = hb_iter->second.cf_bytes + HEADER_SIZE;
-    offset = hb_iter->second.offset; // wthether the tag info have writed or not, this will be ok;
+    offset = hb_iter->second.offset;
     buf = (char*)malloc(size + 2);
-    if(buf == NULL) cout << __LINE__ << ": BUF error!" << endl;
     memcpy(buf, (char*)&(hb_iter->second.buffer[0]), size);
-    // buf[size] = '\0';
+    buf[size+1] = '\0';
 
-    // pthread_rwlock_rdlock( &self->write_lock );
-    // err = plfs_write( fd, buf, size, offset, fuse_get_context()->pid, &bytes_written );
-    // pthread_rwlock_unlock( &self->write_lock );
+    fp = fopen(expended.c_str(), "wb");
+    fseek(fp, 0, SEEK_END);
+    err = fwrite( buf, size, 1, fp );
+    fclose(fp);
 
-    pthread_rwlock_wrlock( &self->write_lock );
-    fd = open(expanded.c_str(), O_RDWR);
-    // fseek(fp, 0, SEEK_END);
-    // err = fwrite(buf, size, 1, fp );
-    // cout << "~~~~ " << hb_iter->second.cf_bytes << endl;
-    err = p_write(fd, buf, size, offset);
-    close(fd);
-    pthread_rwlock_unlock( &self->write_lock );
-
-    if(err == size)    
+    if(err == 1)    
     {
         hb_iter->second.xi_ptr->frame_cnt = (++(hb_iter->second.frame_cnt));
         hb_iter->second.size -= size;
         hb_iter->second.offset += size;
         hb_iter->second.buffer = hb_iter->second.buffer.erase(0, size);
-        // cout << __LINE__ << ": " << size << endl;
     }
 
 
-    ret = (err == PLFS_SUCCESS) ? realsize : err;
+    ret = (err == 1) ? realsize : -99;
     return ret;
 }
 
 
-int Pxtc::xtc_trunc_flush_frame(string expanded, size_t realsize)
+int Pxtc::xtc_trunc_flush_frame(string expended, size_t realsize)
 {
+    cout << __LINE__ << ": xtc_trunc_flush_frame  " << expended << endl;
     int ret, bytes_written;
     map< string, xtc_buffer >::iterator hb_iter;
     int err;
 
-    hb_iter = self->hold_buffer.find(expanded);
+    hb_iter = self->hold_buffer.find(expended);
     if(hb_iter == self->hold_buffer.end())
     {
         // WTF!!!
         err = PLFS_TBD;
-        return err;
+        return -99;
     }
 
     if(hb_iter->second.size < hb_iter->second.cf_bytes + HEADER_SIZE)
     {
         // WTF!!!
         err = PLFS_TBD;
-        return err;
+        return -99;
     }
-
-    // get current frame bytes;
-    int bcnt;
-    get_bcnt_from_buf(&(hb_iter->second.buffer[0]), &bcnt);
-    cout << "~~~~ " << bcnt << endl;
-    if(bcnt % 4){
-        bcnt += (4 - (bcnt % 4));
-    }
-    hb_iter->second.cf_bytes = bcnt;
-    cout << "~~~~ " << hb_iter->second.cf_bytes << endl;
-    if(hb_iter->second.cf_bytes > 200000 || hb_iter->second.cf_bytes < 150000)
-    {
-        cout << "!!!! cf_bytes error!" << endl;
-        exit(1);
-    }
-
 
     size_t size;
     off_t  offset;
     int buf_size;
     char *buf;
     size = hb_iter->second.cf_bytes + HEADER_SIZE;
-    offset = hb_iter->second.offset; 
+    offset = hb_iter->second.offset;
     buf_size = size;
     ret = xtc_truncate_frame(&buf, &buf_size, &(hb_iter->second));
     if(ret)
     {
         err = PLFS_TBD;
-        return err;
+        return -99;
     }
     // buf = (char*)malloc(size + 2);
     // memcpy(buf, (char*)&(hb_iter->second.buffer[0]), size);
     // buf[size+1] = '\0';
 
-    // pthread_rwlock_rdlock( &self->write_lock );
-    // err = plfs_write( fd, buf, buf_size, offset, fuse_get_context()->pid, &bytes_written );
-    // pthread_rwlock_unlock( &self->write_lock );
+    FILE *fp;
+    fseek(fp, 0, SEEK_END);
+    err = fwrite( buf, buf_size, 1, fp);
+    fclose(fp);
 
-    pthread_rwlock_wrlock( &self->write_lock );
-    int fd = open(expanded.c_str(), O_RDWR);
-    // fseek(fp, 0, SEEK_END);
-    err = p_write(fd, buf, buf_size, offset);
-    close(fd);
-    pthread_rwlock_unlock( &self->write_lock );
 
-    free(buf);
-
-    if(err == buf_size)    
+    if(err == 1)    
     {
         hb_iter->second.xi_ptr->frame_cnt = (++(hb_iter->second.frame_cnt));
         hb_iter->second.size -= size;
-        hb_iter->second.offset += buf_size;
+        hb_iter->second.offset += size;
         hb_iter->second.buffer = hb_iter->second.buffer.erase(0, size);
-        // cout << __LINE__ << ": " << buf_size << endl;
     }
 
 
-    ret = (err == 1) ? realsize : err;
+    ret = (err == 1) ? realsize : -99;
     return ret;
 }
 
@@ -1385,21 +1332,7 @@ int Pxtc::xtc_truncate_frame(char **buf, int *size, xtc_buffer *xb_iter)
     return 0;
 }
 
-// function: split_buf
-// struct of ori:
-// HEADER: HEADER info;
-// p: protein atome;
-// w: water atome;
-// HEADERppppppppppppppppwwwwwwwwwwwppppppp
-//       |<- sp_begin ->|          |      |
-//       |<---------- sp_end ----->|      |
-// |<--------------- s_size ------------->|
-//       |<-- b_byte -->|
-//                                 |e_byte|
-// result buf:
-// b_byte + e_byte + HEADER + ppppppppppppppp + ppppppp
-// 4Bytes   4Bytes   92Bytes  b_byte Bytes      e_byte Bytes
-// |<----------------- d_size ----------------------->|
+
 int Pxtc::split_buf(char **buf, char *ori, int sp_begin, int sp_end, int *d_size, int s_size)
 {
     int ret = 0, b_byte, e_byte;
@@ -1410,409 +1343,13 @@ int Pxtc::split_buf(char **buf, char *ori, int sp_begin, int sp_end, int *d_size
     if(*buf == NULL)
         return -1;
 
-    memcpy(*buf, (char*)(&b_byte), sizeof(int));        // + b_byte
-    memcpy((*buf) + sizeof(int), (char*)(&e_byte), sizeof(int));    // + e_byte
-    memcpy((*buf) + 2*sizeof(int), ori, HEADER_SIZE + b_byte);      // + HEADER + b_byte
-    memcpy((*buf) + 2*sizeof(int) + HEADER_SIZE + b_byte, (ori + HEADER_SIZE + sp_end), e_byte);    // + e_byte
+    memcpy(*buf, (char*)(&b_byte), sizeof(int));
+    memcpy((*buf) + sizeof(int), (char*)(&e_byte), sizeof(int));
+    memcpy((*buf) + 2*sizeof(int), ori, HEADER_SIZE + b_byte);
+    memcpy((*buf) + 2*sizeof(int) + HEADER_SIZE + b_byte, (ori + HEADER_SIZE + sp_end), e_byte);
     // *buf[d_size] = '\0';
     return 0;
 }
-
-
-
-
-
-
-
-
-////////////////////////////////////////////
-/// read xtc
-////////////////////////////////////////////
-
-// int Pxtc::read_xtc(const string expanded, char *buf, size_t size, off_t offset)
-// {
-//     int xtc_ret = -99, new_xbuf = 0;
-
-//     map< string, xtc_buffer >::iterator rb_iter;
-//     rb_iter = self->read_buffer.find(expanded);
-//     if(rb_iter == self->read_buffer.end())
-//     {
-//         new_xbuf = 1;
-
-//         xtc_buffer xbuf;
-//         xbuf.rw_flag    = -1;
-//         xbuf.trunc_flag = 0;
-//         xbuf.frame_cnt  = 0;
-//         xbuf.offset     = offset;
-//         xbuf.size       = size;
-//         xbuf.cf_bytes   = 0;
-//         xbuf.pi_ptr     = NULL;
-//         xbuf.xi_ptr     = NULL;
-
-//         /// get xi_ptr;
-//         /// tag info might is redundant;
-//         // map< string, xtc_info >::iterator xi_ptr;
-//         // xi_ptr = self->xtc_files.find(expanded);
-//         // if(xi_ptr == self->xtc_files.end())
-//         // {
-//         //     xtc_ret = read_add_xi(fd, expanded);
-//         // }
-//         // xi_ptr = self->xtc_files.find(expanded);
-//         // // means read_add_xi failed;
-//         // if(xi_ptr == self->xtc_files.end())
-//         // {
-//         //     xbuf.trunc_flag = -1;
-//         //     xbuf.xi_ptr = NULL;
-//         // }else{
-//         //     xbuf.xi_ptr = xi_ptr;
-//         // }
-//         self->read_buffer.insert(pair<string, xtc_buffer>(expanded, xbuf));
-//     }else if(rb_iter->second.trunc_flag < 0)
-//     {
-//         return -2;  // means xtc file does not truncated;
-//     }
-
-//     rb_iter = self->read_buffer.find(expanded);
-//     if(rb_iter == self->read_buffer.end())
-//     {
-//         return -3;  // maybe something wrong, insert failed or xxx;
-//     }
-
-
-//     // read the firts frame;
-//     if(new_xbuf){
-//         xtc_ret = read_xtc_first_frame(fd, expanded, &(rb_iter->second));
-//     }
-
-
-//     // check the data requested can be satisfyed in the buffer or not;
-//     xtc_ret = read_xtc_check(offset, size, &(rb_iter->second));
-//     if(xtc_ret < 0)
-//     {
-//         return -4;  // means read failed.
-//     }else{
-//         // at most reading two frames;
-//         read_xtc_frame();
-//         if(read_xtc_check(offset, size, &(rb_iter->second)) > 0)
-//         {
-//             read_xtc_frame();
-//         }
-//     }
-
-//     // hit the target;
-//     // memcpy the data from buffer and return;
-//     xtc_ret = read_xtc_cp_buf(&(rb_iter->second), buf, size, offset);
-//     if(xtc_ret)
-//     {
-//         return -4;  // means read failed;
-//     }
-
-//     xtc_ret = read_xtc_resize_buf(&(rb_iter->second));
-
-//     return 0;
-
-
-// }
-
-// // add xtc_files from read tag
-// int Pxtc::read_add_xtc(const string expanded)
-// {
-//     int ret = 0;
-//     size_t size, bytes_read;
-//     off_t offset;
-//     char tag_buf[TAG_SIZE + 1];
-
-//     offset = 0;
-//     size = TAG_SIZE;
-//     ret = plfs_read(fd, tag_buf, size, offset, &bytes_read);
-//     if(ret != PLFS_SUCCESS || bytes_read != size)
-//     {
-//         return -1;
-//     }
-//     int *it;
-//     it = (int*)tag_buf;
-//     xtc_info xi;
-
-//     // check the magic number;
-//     if(it[0] == 9527)
-//     {
-//         xi.frame_cnt = 0;
-//         xi.natoms = it[1];
-//         xi.first_bytecnt = it[2];
-//         xi.base_best_begin = it[3];
-//         xi.base_best_end = it[4];
-//         xi.best_water_begin = it[5];
-//         xi.best_water_end = it[6];
-
-//         self->xtc_files[expanded] = xi;
-//         return 0;
-//     }else if(it[0] == 1995)
-//     {
-//         // 1995 is xtc magic number within the header info;
-//         // means not truncated;
-//         return -2
-//     }
-//     // maybe some bad things occured;
-//     // generally, can rebuild xtc_info through some indirect methods;
-//     // placeholder;
-//     return -1;
-// }
-
-
-// // read the first frame;
-// int Pxtc::read_xtc_first_frame(const string expanded, xtc_buffer *xbuf)
-// {
-//     int ret = 0;
-//     size_t size, bytes_read;
-//     off_t offset;
-//     char *buf;
-
-//     size = TAG_SIZE + HEADER_SIZE;
-//     offset = 0;
-//     buf = (char*)malloc(size + 1);
-//     ret = plfs_read(buf, size, offset, &bytes_read);
-//     if(ret != PLFS_SUCCESS || bytes_read != size)
-//     {
-//         free(buf);
-//         return -99;
-//     }
-
-//     int tag_magic = 0, xtc_magic = 0, bytecnt = 0;
-//     memcpy((char*)(&tag_magic), buf, sizeof(int));
-//     get_int(buf + TAG_SIZE, &xtc_magic);
-//     get_bcnt_from_buf(buf + TAG_SIZE, &bytecnt);
-//     free(buf);
-//     if(tag_magic != 9527 && xtc_magic != 1995)
-//     {
-//         xbuf->trunc_flag = -3;
-//         return -1;
-//     }
-
-//     offset = TAG_SIZE;
-//     size = HEADER_SIZE + bytecnt + (4 - bytecnt % 4);
-//     xbuf->buffer.resize(size + 1);
-//     ret = plfs_read((char*)(&(xbuf[0])), size, offset, &bytes_read);
-//     if(ret != PLFS_SUCCESS || bytes_read != size)
-//     {
-//         return -99;
-//     }
-
-//     xbuf->offset = TAG_SIZE + bytes_read;
-//     xbuf->size = bytes_read;
-//     xbuf->cf_bytes = bytes_read;
-//     return 0;
-
-// }
-
-
-
-// int Pxtc::read_xtc_frame(const string expanded, xtc_buffer *xbuf)
-// {
-//     int ret = 0;
-//     size_t size, bytes_read;
-//     off_t offset;
-//     char *buf;
-
-//     offset = xbuf->offset;
-//     size = 2 * sizeof(int) + HEADER_SIZE;
-    
-//     buf = (char*)malloc(size + 1);
-//     ret = plfs_read(buf, size, offset, &bytes_read);
-//     if(ret != PLFS_SUCCESS || bytes_read != size)
-//     {
-//         free(buf);
-//         return -99;
-//     }
-
-//     int xtc_magic = 0, b_byte, e_byte, bytecnt;
-//     get_int(buf + 2 * sizeof(int), &xtc_magic);
-//     get_bcnt_from_buf(buf + 2 * sizeof(int), &bytecnt);
-//     memcpy((char*)(&b_byte), buf, sizeof(int));
-//     memcpy((char*)(&e_byte), buf + sizeof(int), sizeof(int));
-//     free(buf);
-//     if(xtc_magic != 1995 || b_byte < 0 || e_byte < 0 || (b_byte + e_byte > bytecnt))
-//     {
-//         xbuf->trunc_flag = -3;
-//         return -1;
-//     }
-
-
-//     // reading the first part of the coordinate;
-//     xbuf->offset += 2 * sizeof(int);        // skip b_byte and e_byte;
-//     int water_fill_size = bytecnt - b_byte - e_byte;
-//     offset = xbuf->offset;
-//     size = HEADER_SIZE + b_byte; 
-//     xbuf->buffer.resize(xbuf->size + HEADER_SIZE + bytecnt + 1);
-
-//     ret = plfs_read((char*)(&(xbuf->buffer[xbuf->size])), size, offset, &bytes_read);
-//     if(ret != PLFS_SUCCESS || bytes_read != size)
-//     {
-//         return -99;
-//     }
-//     xbuf->offset += bytes_read;
-//     xbuf->size += bytes_read;
-
-//     // reading the next part of the coordinate;
-//     offset = xbuf->offset;
-//     size = e_byte;
-//     ret = plfs_read((char*)(&(xbuf->buffer[xbuf->size + water_fill_size])), size, offset, &bytes_read);
-//     if(ret != PLFS_SUCCESS || bytes_read != size)
-//     {
-//         return -99;
-//     }
-//     xbuf->offset += bytes_read;
-//     xbuf->size += water_fill_size + bytes_read;
-
-//     xbuf->frame_cnt += 1;
-
-//     return 0;
-// }
-
-
-
-// int Pxtc::read_xtc_check(off_t offset, size_t size, const xtc_buffer *xbuf)
-// {
-//     // if true means the buffer does meet the data requested;
-//     if((offset >= xbuf->offset - xbuf->size)
-//         && (offset + size <= xbuf->offset))
-//     {
-//         return 0;
-//     }
-
-//     // means the data requested is locate at the next frame;
-//     // so should read the next frame;
-//     if((offset >= xbuf->offset - xbuf->size)
-//         && (offset + size <= xbuf->offset + xbuf->cf_bytes * 2))
-//     {
-//         return 1;
-//     }
-
-//     return -1;
-//     // two situations:
-//     // 1. data requested is locate at the previous frame;
-//     // 2. data requested is locate at the frame that is too far away;
-
-//     // means the data requested is locate at the previous frame;
-//     // so, what should do?
-//     // reading the previous freams will produce massive overheads.
-//     // if(offset < xbuf->offset - xbuf->size)
-//     // {
-//     //     return -1;
-//     // }
-
-// }
-
-
-// int Pxtc::read_xtc_cp_buf(char *buf, xtc_buffer *xbuf, size_t size, off_t offset)
-// {
-//     if(read_xtc_check)
-//     {
-//         return -1;
-//     }
-
-//     off_t cp_offset;
-//     size_t cp_size;
-
-//     cp_offset = offset - (xbuf->offset - xbuf->size);
-//     cp_size = size;
-
-//     memcpy(buf, (char*)(&(xbuf->buffer[cp_offset])), cp_size );
-
-//     return 0;
-
-// }
-
-// int Pxtc::read_xtc_resize_buf(xtc_buffer *xbuf)
-// {
-//     if(xbuf->size > xbuf->cf_bytes * 3)
-//     {
-//         xbuf->buffer.erase(0, xbuf->cf_bytes);
-//         xbuf->size -= xbuf->cf_bytes;
-//     }
-
-//     return 0;
-// }
-
-
-
-// /////////////////////////////////////////////////////
-// /// close a xtc file
-// /////////////////////////////////////////////////////
-
-// int Pxtc::xtc_close(const string strPath, int open_flag)
-// {
-//     xtc_write_close(strPath);
-//     xtc_read_close(strPath);
-
-//     return 0;
-// }
-
-
-
-// int Pxtc::xtc_write_close(string strPath)
-// {
-//     int ret;
-//     map< string, xtc_buffer >::iterator hb_iter;
-//     hb_iter = self->hold_buffer.find(strPath);
-//     if(hb_iter == self->hold_buffer.end()){
-//         return 0;
-//     }
-//     if(hb_iter->second.trunc_flag == 1)
-//     {
-//         ret = xtc_trunc_flush_frame(strPath, 250);
-//         // means not enough data for frame for flushed;
-//         // so free it's buffer and close directly;
-//         // if(ret != 250){
-//         //     hb_iter->second.offset = 0;
-//         //     hb_iter->second.size = 0;
-//         //     hb_iter->second.cf_bytes = 0;
-//         //     string tmp = "";
-//         //     hb_iter->second.buffer.swap(tmp);
-//         //     return 0;
-//         // }
-//     }else if(hb_iter->second.size > 0)
-//     {
-//         // means not trunc and some data not flushed.
-//         ret = xtc_flush_buffer(strPath, 250);
-//     }
-
-//     hb_iter->second.rw_flag = 0;
-//     hb_iter->second.offset = 0;
-//     hb_iter->second.size = 0;
-//     hb_iter->second.cf_bytes = 0;
-//     string tmp = "";
-//     hb_iter->second.buffer.swap(tmp);
-//     return 0;
-// }
-
-
-// int Pxtc::xtc_read_close(string strPath)
-// {
-//     int ret;
-//     map< string, xtc_buffer >::iterator rb_iter;
-//     rb_iter = self->read_buffer.find(strPath);
-//     if(rb_iter == self->read_buffer.end())
-//     {
-//         return 0;
-//     }
-
-//     rb_iter->second.rw_flag = 0;
-//     rb_iter->second.trunc_flag = 0;
-//     rb_iter->second.frame_cnt = 0;
-//     rb_iter->second.offset = 0;
-//     rb_iter->second.size = 0;
-//     // rb_iter->second.cf_bytes = 0;
-//     string tmp = "";
-//     rb_iter->second.buffer.swap(tmp);
-//     return 0;
-// }
-
-
-
-
-
-
-
 
 
 
@@ -1860,9 +1397,6 @@ int Pxtc::write_file(const char *strPath, const char *buf, size_t size, off_t of
             // hold buffer, not write;
             ret = xtc_trunc_flush_frame(strPath, size);
         }
-        if(ret == PLFS_TBD){
-            xtc_ret += PLFS_TBD;
-        }
         return xtc_ret;
     }else{
         return -99;
@@ -1871,19 +1405,3 @@ int Pxtc::write_file(const char *strPath, const char *buf, size_t size, off_t of
 }
 
 
-
-
-
-int Pxtc::p_write(int fd, const char *buf, size_t size, off_t offset)
-{
-    // cout << "---->>  offset: " << offset << <<"  size: " << size << endl;
-    printf("---->>  %10d, %10d, %10d\n", offset, size, offset+size);
-    return size;
-}
-
-
-int Pxtc::bing_hold_buf(string expanded, const char *buf, size_t size, off_t offset)
-{
-    printf("++++>>  %10d, %10d, %10d\n", offset, size, offset+size);
-    return 0;
-}
