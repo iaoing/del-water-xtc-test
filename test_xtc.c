@@ -40,7 +40,7 @@ int main()
 
 	// test read frame 
 	printf("----> test read frmae <----\n");
-	mf = xtc_open("H:/Data-for-VMD/Villin/CLONE6/frame0.xtc", MDFMT_XTC, XTC_READ);
+	mf = xtc_open("H:/Data-for-VMD/water-channel/git-del-write-test-xtc.xtc", MDFMT_XTC, XTC_READ);
 	if(xtc_read_frame(mf, &mt))
 	{
 		printf("%s\n", mdio_errmsg(mdio_errno()));
@@ -78,44 +78,7 @@ int main()
 	}
 
 
-	printf("----> test read frmae <----\n");
-	mf = xtc_open("H:/Data-for-VMD/Villin/CLONE6/frame1.xtc", MDFMT_XTC, XTC_READ);
-	if(xtc_read_frame(mf, &mt))
-	{
-		printf("%s\n", mdio_errmsg(mdio_errno()));
-		exit(1);
-	}
-	print_mdts(&mt);
-
-
-	if(xtc_read_frame(mf, &mt))
-	{
-		printf("%s\n", mdio_errmsg(mdio_errno()));
-		exit(1);
-	}
-	print_mdts(&mt);
-
-	if(xtc_read_frame(mf, &mt))
-	{
-		printf("%s\n", mdio_errmsg(mdio_errno()));
-		exit(1);
-	}
-	print_mdts(&mt);
-
-	if(xtc_read_frame(mf, &mt))
-	{
-		printf("%s\n", mdio_errmsg(mdio_errno()));
-		exit(1);
-	}
-	print_mdts(&mt);
-
-
-	if(xtc_close(mf))
-	{
-		printf("%s\n", mdio_errmsg(mdio_errno()));
-		exit(1);
-	}
-
+	
 	//test write frame
 	// modify data in mt
 	// for(int i = mt.natoms/2; i < mt.natoms; ++i)

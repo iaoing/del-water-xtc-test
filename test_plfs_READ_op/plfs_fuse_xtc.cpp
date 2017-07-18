@@ -1467,12 +1467,14 @@ int Pxtc::read_xtc(const string expanded, char *buf, size_t size, off_t offset)
         self->read_buffer.insert(pair<string, xtc_read_buf>(expanded, xrbuf));
     }else if(rb_iter->second.trunc_flag < 0)
     {
+        cout << __FUNCTION__ << ":  " << __LINE__ << endl;
         return -2;  // means xtc file does not truncated;
     }
 
     rb_iter = self->read_buffer.find(expanded);
     if(rb_iter == self->read_buffer.end())
     {
+        cout << __FUNCTION__ << ":  " << __LINE__ << endl;
         return -3;  // something error, might insert failed or xxx;
     }
 
@@ -1480,16 +1482,19 @@ int Pxtc::read_xtc(const string expanded, char *buf, size_t size, off_t offset)
     // read the firts frame;
     if(new_xbuf){
         xtc_ret = read_xtc_first_frame(expanded, &(rb_iter->second));
+        // if(xtc_ret < 0)
+        // {
+        //     cout << __FUNCTION__ << ":  " << __LINE__ << endl;
+        //     return -4;  // means read failed.
+        // }
     }
-    if(xtc_ret < 0)
-    {
-        return -4;  // means read failed.
-    }
+    
 
     // check the data requested can be satisfyed in the buffer or not;
     xtc_ret = read_xtc_check(offset, size, &(rb_iter->second));
     if(xtc_ret < 0)
     {
+        cout << __FUNCTION__ << ":  " << __LINE__ << endl;
         return -4;  // means read failed.
     }else if(xtc_ret > 0){
         // at most reading two frames;
@@ -1505,11 +1510,12 @@ int Pxtc::read_xtc(const string expanded, char *buf, size_t size, off_t offset)
     xtc_ret = read_xtc_cp_buf(&(rb_iter->second), buf, size, offset);
     if(xtc_ret)
     {
+        cout << __FUNCTION__ << ":  " << __LINE__ << endl;
         return -4;  // means read failed;
     }
 
     xtc_ret = read_xtc_resize_buf(&(rb_iter->second));
-
+    cout << __FUNCTION__ << ":  " << __LINE__ << endl;
     return 0;
 
 
@@ -1603,7 +1609,7 @@ int Pxtc::read_xtc_first_frame(const string expanded, xtc_read_buf *xrbuf)
     bytecnt += (bytecnt % 4) ? (4 - bytecnt % 4) : 0;
     size = HEADER_SIZE + bytecnt;
     xrbuf->buffer.resize(size + 1);
-    printf("---- %10d %10d %10d %10d\n", tag_magic, xtc_magic, natoms, bytecnt);
+    // printf("---- %10d %10d %10d %10d\n", tag_magic, xtc_magic, natoms, bytecnt);
     ret = plfs_read(expanded, (char*)(&(xrbuf->buffer[0])), size, offset, &bytes_read);
     if(ret != PLFS_SUCCESS || bytes_read != size)
     {
@@ -1703,7 +1709,7 @@ int Pxtc::read_xtc_check(off_t offset, size_t size, const xtc_read_buf *xrbuf)
     // means the data requested is locate at the next frame;
     // so should read the next frame;
     if((offset >= xrbuf->offset - xrbuf->size)
-        && (offset + size <= xrbuf->f_offset + xrbuf->cf_bytes * 2))
+        && (offset + size <= xrbuf->offset + xrbuf->cf_bytes * 2))
     {
         return 1;
     }
@@ -1726,7 +1732,9 @@ int Pxtc::read_xtc_check(off_t offset, size_t size, const xtc_read_buf *xrbuf)
 
 int Pxtc::read_xtc_cp_buf(xtc_read_buf *xrbuf, char *buf, size_t size, off_t offset)
 {
-    cout << "begin read_xtc_cp_buf" << endl;
+    // cout << "begin read_xtc_cp_buf" << endl;
+    printf("%s:  %d:  %10d%10d%10d%10d%10d\n", __FUNCTION__, __LINE__,
+         xrbuf->f_offset, xrbuf->offset, xrbuf->size, offset, size);
     if(read_xtc_check(offset, size, xrbuf))
     {
         return -1;
@@ -1739,7 +1747,7 @@ int Pxtc::read_xtc_cp_buf(xtc_read_buf *xrbuf, char *buf, size_t size, off_t off
     cp_size = size;
 
     memcpy(buf, (char*)(&(xrbuf->buffer[cp_offset])), cp_size );
-    cout << "end read_xtc_cp_buf" << endl;
+    // cout << "end read_xtc_cp_buf" << endl;
     return 0;
 
 }
@@ -1857,8 +1865,8 @@ int Pxtc::p_write(int fd, const char *buf, size_t size, off_t offset)
 
 int Pxtc::plfs_read(const string expanded, char *buf, size_t size, off_t offset, size_t *bytes_read)
 {
-    cout << "--> plfs_read!" << endl;
-    printf("++++ %10d %10d\n", offset, size);
+    cout << "----> plfs_read!" << endl;
+    printf("---- %10d %10d\n", offset, size);
     int fd;
     fd = open(expanded.c_str(), O_RDONLY);
     *bytes_read = pread(fd, buf, size, offset);

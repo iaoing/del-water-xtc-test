@@ -112,7 +112,7 @@ int cp_file()
 		else
 			read_size = f_length - cur_size;
 
-		cout << "MMMM " << read_size << endl;
+		// cout << "MMMM " << read_size << endl;
 		buf = (char*)malloc(read_size * sizeof(char));
 
 		if(fread(buf, read_size, 1, fp) == 1)

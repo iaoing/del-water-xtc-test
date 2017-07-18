@@ -1304,12 +1304,12 @@ int Pxtc::xtc_trunc_flush_frame(string expanded, size_t realsize)
     // get current frame bytes;
     int bcnt;
     get_bcnt_from_buf(&(hb_iter->second.buffer[0]), &bcnt);
-    cout << "~~~~ " << bcnt << endl;
+    // cout << "~~~~ " << bcnt << endl;
     if(bcnt % 4){
         bcnt += (4 - (bcnt % 4));
     }
     hb_iter->second.cf_bytes = bcnt;
-    cout << "~~~~ " << hb_iter->second.cf_bytes << endl;
+    // cout << "~~~~ " << hb_iter->second.cf_bytes << endl;
     if(hb_iter->second.cf_bytes > 200000 || hb_iter->second.cf_bytes < 150000)
     {
         cout << "!!!! cf_bytes error!" << endl;
@@ -1878,12 +1878,17 @@ int Pxtc::p_write(int fd, const char *buf, size_t size, off_t offset)
 {
     // cout << "---->>  offset: " << offset << <<"  size: " << size << endl;
     printf("---->>  %10d, %10d, %10d\n", offset, size, offset+size);
+    int ret = pwrite(fd, buf, size, offset);
+    if(ret != size){
+        cout << "#### ret!= size!" << endl;
+        exit(1);
+    }
     return size;
 }
 
 
 int Pxtc::bing_hold_buf(string expanded, const char *buf, size_t size, off_t offset)
 {
-    printf("++++>>  %10d, %10d, %10d\n", offset, size, offset+size);
+    // printf("++++>>  %10d, %10d, %10d\n", offset, size, offset+size);
     return 0;
 }
